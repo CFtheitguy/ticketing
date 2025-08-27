@@ -3,8 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Linear Desk — Agent Dashboard</title>
+  <title>Linear Desk — Agent Dashboard (Email Threads)</title>
+  <meta name="robots" content="noindex,nofollow" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .sla-warn { border-color: #f59e0b !important; }
+    .sla-breach { border-color: #ef4444 !important; }
+    .msg { white-space: pre-wrap; }
+    .comment-item { border-left: 3px solid #e5e7eb; padding-left: .75rem; }
+    .comment-public { border-left-color: #60a5fa; } /* blue for public email replies */
+    .comment-internal { border-left-color: #9ca3af; } /* gray for internal notes */
+  </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
   <div class="max-w-7xl mx-auto p-6">
@@ -24,7 +33,7 @@
       </div>
     </section>
 
-    <nav class="flex gap-2 mb-4">
+    <nav class="flex flex-wrap gap-2 mb-4">
       <button data-view="open" class="tab px-3 py-2 rounded-lg border bg-white">All Open</button>
       <button data-view="mine" class="tab px-3 py-2 rounded-lg border">My Queue</button>
       <button data-view="waiting" class="tab px-3 py-2 rounded-lg border">Waiting</button>
@@ -40,12 +49,12 @@
 
     <template id="cardTpl">
       <article class="bg-white border rounded-xl p-4">
-        <header class="flex justify-between items-start">
-          <div>
-            <a class="text-lg font-semibold ticket-link" target="_blank"></a>
+        <header class="flex justify-between items-start gap-3">
+          <div class="min-w-0">
+            <a class="text-lg font-semibold ticket-link block truncate" target="_blank"></a>
             <div class="text-sm text-gray-600 meta mt-1"></div>
           </div>
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2 shrink-0">
             <select class="status border rounded-lg px-2 py-1">
               <option value="new">new</option>
               <option value="in-progress">in-progress</option>
@@ -54,14 +63,41 @@
             </select>
             <input class="assignee border rounded-lg px-2 py-1" placeholder="assignee" />
             <button class="assign px-3 py-1 border rounded-lg">Assign</button>
+            <button class="view px-3 py-1 border rounded-lg">View</button>
             <button class="close px-3 py-1 border rounded-lg">Close</button>
             <button class="reopen px-3 py-1 border rounded-lg">Reopen</button>
           </div>
         </header>
-        <section class="mt-3">
-          <textarea class="comment w-full border rounded-lg px-3 py-2" rows="2" placeholder="Add a quick comment…"></textarea>
-          <div class="mt-2 flex justify-end">
-            <button class="addComment bg-black text-white px-3 py-1 rounded-lg">Comment</button>
+
+        <section class="mt-3 grid gap-2">
+          <div class="flex items-center gap-3">
+            <label class="text-sm flex items-center gap-1">
+              <input type="radio" name="mode-__ID__" value="internal" checked> Internal note
+            </label>
+            <label class="text-sm flex items-center gap-1">
+              <input type="radio" name="mode-__ID__" value="public"> Public reply (email client)
+            </label>
+            <span class="text-xs text-gray-500">Public reply emails the client and logs to the thread.</span>
+          </div>
+          <textarea class="comment w-full border rounded-lg px-3 py-2" rows="3" placeholder="Write a note or a reply…"></textarea>
+          <div class="flex justify-end gap-2">
+            <button class="send bg-black text-white px-3 py-1 rounded-lg">Send</button>
+          </div>
+        </section>
+
+        <section class="details mt-4 hidden">
+          <div class="bg-gray-50 border rounded-lg p-3">
+            <div class="text-sm text-gray-700">
+              <div><span class="font-medium">Client:</span> <span class="clientName"></span> · <a class="clientEmail underline" target="_blank"></a></div>
+              <div class="mt-2">
+                <div class="font-medium">Original request:</div>
+                <div class="msg original mt-1"></div>
+              </div>
+              <div class="mt-3">
+                <div class="font-medium">Conversation:</div>
+                <div class="thread mt-1 grid gap-2"></div>
+              </div>
+            </div>
           </div>
         </section>
       </article>
@@ -69,7 +105,7 @@
   </div>
 
   <script>
-    const API_BASE = "https://YOUR-WORKER-SUBDOMAIN.workers.dev"; // ← replace
+    const API_BASE = "https://api.help.linearit.co";
 
     const $ = (s, el=document) => el.querySelector(s);
     const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
@@ -93,6 +129,34 @@
     $$(".tab").forEach(b => b.onclick = () => { $$(".tab").forEach(x=>x.classList.remove("bg-white")); b.classList.add("bg-white"); load(b.dataset.view); });
     $("#btnSearch").onclick = () => load("search");
 
+    function ageInfo(iso) {
+      const dt = new Date(iso);
+      const mins = Math.floor((Date.now() - dt.getTime())/60000);
+      const hrs = Math.floor(mins/60);
+      const days = Math.floor(hrs/24);
+      return {mins, hrs, days};
+    }
+    function findLabel(labels, prefix) {
+      const f = (labels||[]).find(l => l.name.startsWith(prefix));
+      return f ? f.name.split(":")[1].trim() : "";
+    }
+    function slaClass(item) {
+      const age = ageInfo(item.created_at);
+      const high = (item.labels||[]).some(l => l.name === 'priority: high');
+      if (!high) return "";
+      if (age.hrs >= 8) return "sla-breach";
+      if (age.hrs >= 6) return "sla-warn";
+      return "";
+    }
+    function parseClient(issueBody) {
+      const m = /\*\*From:\*\*\s*(.+?)\s*<([^>]+)>/i.exec(issueBody || "");
+      const name = m ? m[1] : "";
+      const email = m ? m[2] : "";
+      const parts = (issueBody || "").split(/\n---\n/);
+      const original = parts.length > 1 ? parts[1].trim() : (issueBody||"").trim();
+      return { name, email, original };
+    }
+
     async function load(view) {
       currentView = view;
       list.innerHTML = "Loading…";
@@ -108,11 +172,6 @@
       render(j.items || []);
     }
 
-    function findLabel(labels, prefix) {
-      const f = (labels||[]).find(l => l.name.startsWith(prefix));
-      return f ? f.name.split(":")[1].trim() : "";
-    }
-
     function render(items) {
       list.innerHTML = "";
       items.forEach(it => {
@@ -121,7 +180,13 @@
         link.textContent = `#${it.number} · ${it.title}`;
         link.href = it.html_url;
         const meta = $(".meta", t);
-        meta.textContent = `by ${it.user ? it.user.login : 'unknown'} · ${new Date(it.created_at).toLocaleString()} · labels: ${(it.labels||[]).map(l=>l.name).join(', ')}`;
+        const age = ageInfo(it.created_at);
+        const upd = new Date(it.updated_at || it.created_at).toLocaleString();
+        meta.textContent = `opened ${age.days}d ${age.hrs%24}h ago · updated ${upd} · labels: ${(it.labels||[]).map(l=>l.name).join(', ')}`;
+
+        const article = t.firstElementChild;
+        const cls = slaClass(it);
+        if (cls) article.classList.add(cls);
 
         const statusSel = $(".status", t);
         statusSel.value = findLabel(it.labels, "status:") || (it.state === 'closed' ? 'closed' : 'new');
@@ -130,8 +195,15 @@
         const assigneeInput = $(".assignee", t);
         const closeBtn = $(".close", t);
         const reopenBtn = $(".reopen", t);
-        const commentBtn = $(".addComment", t);
+        const viewBtn = $(".view", t);
+        const details = $(".details", t);
         const commentTa = $(".comment", t);
+        const sendBtn = $(".send", t);
+        const radios = $$("input[type=radio]", t);
+        const clientName = $(".clientName", t);
+        const clientEmail = $(".clientEmail", t);
+        const original = $(".original", t);
+        const thread = $(".thread", t);
 
         statusSel.onchange = async () => {
           await fetch(`${API_BASE}/admin/tickets/${it.number}/status`, {
@@ -140,7 +212,6 @@
           });
           load(currentView);
         };
-
         assignBtn.onclick = async () => {
           const a = assigneeInput.value.trim(); if (!a) return;
           await fetch(`${API_BASE}/admin/tickets/${it.number}/assign`, {
@@ -149,7 +220,6 @@
           });
           load(currentView);
         };
-
         closeBtn.onclick = async () => {
           await fetch(`${API_BASE}/admin/tickets/${it.number}/close`, { method:'POST', credentials:'include' });
           load(currentView);
@@ -158,13 +228,58 @@
           await fetch(`${API_BASE}/admin/tickets/${it.number}/reopen`, { method:'POST', credentials:'include' });
           load(currentView);
         };
-        commentBtn.onclick = async () => {
-          const text = commentTa.value.trim(); if (!text) return;
-          await fetch(`${API_BASE}/admin/tickets/${it.number}/comment`, {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            credentials:'include', body: JSON.stringify({ text })
+
+        viewBtn.onclick = async () => {
+          if (!details.classList.contains("hidden")) { details.classList.add("hidden"); thread.innerHTML=""; return; }
+          const res = await fetch(`${API_BASE}/admin/tickets/${it.number}`, { credentials: 'include' });
+          const j = await res.json();
+          if (!res.ok) { alert(j.error || "Failed to load details"); return; }
+          const info = parseClient(j.issue.body || "");
+          clientName.textContent = info.name || "(no name)";
+          clientEmail.textContent = info.email || "(no email)";
+          if (info.email) clientEmail.href = `mailto:${info.email}`;
+          original.textContent = info.original || "(empty)";
+          thread.innerHTML = "";
+          (j.comments || []).forEach(c => {
+            const div = document.createElement("div");
+            const isPublic = (c.body || "").startsWith("PUBLIC:");
+            div.className = "comment-item " + (isPublic ? "comment-public" : "comment-internal");
+            const when = new Date(c.created_at).toLocaleString();
+            const body = isPublic ? c.body.replace(/^PUBLIC:\s*/,'') : (c.body||"");
+            div.innerHTML = `<div class="text-xs text-gray-500">${c.user?.login || 'user'} · ${when} ${isPublic ? "· to client" : "· internal"}</div><div class="msg mt-1">${body}</div>`;
+            thread.appendChild(div);
           });
+          details.classList.remove("hidden");
+        };
+
+        sendBtn.onclick = async () => {
+          const text = commentTa.value.trim(); if (!text) return;
+          const mode = radios.find(r => r.checked)?.value || "internal";
+          if (mode === "internal") {
+            await fetch(`${API_BASE}/admin/tickets/${it.number}/comment`, {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              credentials:'include', body: JSON.stringify({ text })
+            });
+            const status = findLabel(it.labels, "status:");
+            if (status === "new") {
+              await fetch(`${API_BASE}/admin/tickets/${it.number}/status`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                credentials:'include', body: JSON.stringify({ status: "in-progress" })
+              });
+            }
+          } else {
+            await fetch(`${API_BASE}/admin/tickets/${it.number}/reply`, {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              credentials:'include', body: JSON.stringify({ text })
+            });
+            await fetch(`${API_BASE}/admin/tickets/${it.number}/status`, {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              credentials:'include', body: JSON.stringify({ status: "waiting" })
+            });
+          }
           commentTa.value = "";
+          if (!details.classList.contains("hidden")) viewBtn.click();
+          else load(currentView);
         };
 
         list.appendChild(t);
