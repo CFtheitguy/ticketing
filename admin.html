@@ -1,290 +1,365 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Linear Desk — Agent Dashboard (Email Threads)</title>
-  <meta name="robots" content="noindex,nofollow" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .sla-warn { border-color: #f59e0b !important; }
-    .sla-breach { border-color: #ef4444 !important; }
-    .msg { white-space: pre-wrap; }
-    .comment-item { border-left: 3px solid #e5e7eb; padding-left: .75rem; }
-    .comment-public { border-left-color: #60a5fa; } /* blue for public email replies */
-    .comment-internal { border-left-color: #9ca3af; } /* gray for internal notes */
-  </style>
+<meta charset="utf-8"/>
+<title>Linear Desk — Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#0f172a; --muted:#94a3b8; --text:#e5e7eb; --border:#1f2937; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444; --accent:#60a5fa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  .wrap{max-width:1200px;margin:24px auto;padding:0 16px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  h1{font-size:20px;margin:0}
+  .pill{font-size:12px;border:1px solid var(--border);border-radius:999px;padding:4px 8px;color:var(--muted)}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .grid{display:grid;grid-template-columns:320px 1fr;gap:16px}
+  @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+  .section-title{font-size:13px;color:var(--muted);margin:6px 0 10px}
+  .search{display:flex;gap:8px}
+  input[type="text"],textarea{width:100%;background:#0b1730;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px}
+  button{background:#111827;color:#fff;border:none;border-radius:10px;padding:8px 12px;cursor:pointer}
+  button.primary{background:#1f2937}
+  button.green{background:#166534}
+  button:disabled{opacity:.6;cursor:not-allowed}
+  .list{max-height:70vh;overflow:auto}
+  .item{border:1px solid var(--border);border-radius:10px;padding:10px;margin:8px 0;background:#0b1427;cursor:pointer}
+  .item:hover{outline:1px solid #1f2d47}
+  .muted{color:var(--muted)}
+  .comment{border:1px solid var(--border);border-radius:10px;padding:10px;margin:10px 0;background:#0a1428}
+  .badge{display:inline-block;border:1px solid var(--border);border-radius:8px;padding:2px 6px;margin-right:6px;font-size:12px}
+  .badge.public{border-color:rgba(34,197,94,.4)}
+  .badge.internal{border-color:rgba(96,165,250,.4)}
+  .attachments{margin-top:6px;font-size:13px}
+  .dl{display:inline-flex;align-items:center;gap:8px;margin:6px 6px 0 0}
+  .dl a{color:#cbd5e1;text-decoration:none;border:1px solid var(--border);padding:6px 10px;border-radius:8px}
+  .inline-img{display:block;max-width:280px;max-height:180px;border-radius:8px;border:1px solid var(--border);margin:8px 0}
+  .status{font-size:12px;color:var(--muted)}
+  .right-head{display:flex;justify-content:space-between;gap:12px;align-items:center}
+</style>
 </head>
-<body class="bg-gray-50 text-gray-900">
-  <div class="max-w-7xl mx-auto p-6">
-    <header class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">Linear Desk — Agent Dashboard</h1>
-      <div class="flex items-center gap-2">
-        <button id="btnShowLogin" class="px-3 py-2 rounded-lg border">Login</button>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Linear Desk — Admin</h1>
+    <span class="pill" id="whoami"></span>
+    <span class="pill" id="env"></span>
+    <span class="pill" id="allow"></span>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT: Ticket list -->
+    <div class="panel">
+      <div class="section-title">Tickets</div>
+      <div class="search">
+        <input id="q" type="text" placeholder="Search (title, text)…"/>
+        <button id="btnSearch" class="primary">Search</button>
+        <button id="btnOpen" class="primary">Open</button>
+        <button id="btnClosed" class="primary">Closed</button>
+        <button id="btnRefresh">Refresh</button>
       </div>
-    </header>
+      <div class="list" id="list">Loading…</div>
+    </div>
 
-    <section id="loginBox" class="mb-6 hidden">
-      <div class="bg-white border rounded-xl p-4 max-w-sm">
-        <h2 class="font-semibold mb-2">Agent Login</h2>
-        <input id="password" type="password" placeholder="Staff password" class="w-full border rounded-lg px-3 py-2 mb-3">
-        <button id="btnLogin" class="bg-black text-white px-4 py-2 rounded-lg">Login</button>
-        <p id="loginMsg" class="text-sm mt-2"></p>
+    <!-- RIGHT: Ticket view -->
+    <div class="panel">
+      <div class="right-head">
+        <div>
+          <div id="tTitle" style="font-weight:600"></div>
+          <div class="muted" id="tMeta"></div>
+        </div>
+        <div class="row">
+          <select id="statusSel">
+            <option value="">Set status…</option>
+            <option>new</option>
+            <option>waiting</option>
+            <option>working</option>
+            <option>done</option>
+          </select>
+          <button id="btnSetStatus">Save</button>
+        </div>
       </div>
-    </section>
 
-    <nav class="flex flex-wrap gap-2 mb-4">
-      <button data-view="open" class="tab px-3 py-2 rounded-lg border bg-white">All Open</button>
-      <button data-view="mine" class="tab px-3 py-2 rounded-lg border">My Queue</button>
-      <button data-view="waiting" class="tab px-3 py-2 rounded-lg border">Waiting</button>
-      <button data-view="closed" class="tab px-3 py-2 rounded-lg border">Closed</button>
-      <div class="ml-auto flex items-center gap-2">
-        <input id="assignee" placeholder="@username (for My Queue)" class="border rounded-lg px-3 py-2" />
-        <input id="search" placeholder="Search…" class="border rounded-lg px-3 py-2" />
-        <button id="btnSearch" class="px-3 py-2 rounded-lg border">Search</button>
+      <div class="section-title">Conversation</div>
+      <div id="comments">Select a ticket…</div>
+
+      <div class="section-title">Reply to client</div>
+      <textarea id="replyText" rows="5" placeholder="Write your reply to the client…"></textarea>
+      <div class="row" style="margin-top:8px">
+        <input id="replyFiles" type="file" multiple/>
+        <span id="fileList" class="muted"></span>
       </div>
-    </nav>
+      <div class="row" style="margin-top:10px">
+        <button id="btnSend" class="green">Send reply</button>
+        <span id="sendStatus" class="status"></span>
+      </div>
 
-    <div id="list" class="grid gap-3"></div>
-
-    <template id="cardTpl">
-      <article class="bg-white border rounded-xl p-4">
-        <header class="flex justify-between items-start gap-3">
-          <div class="min-w-0">
-            <a class="text-lg font-semibold ticket-link block truncate" target="_blank"></a>
-            <div class="text-sm text-gray-600 meta mt-1"></div>
-          </div>
-          <div class="flex flex-wrap gap-2 shrink-0">
-            <select class="status border rounded-lg px-2 py-1">
-              <option value="new">new</option>
-              <option value="in-progress">in-progress</option>
-              <option value="waiting">waiting</option>
-              <option value="closed">closed</option>
-            </select>
-            <input class="assignee border rounded-lg px-2 py-1" placeholder="assignee" />
-            <button class="assign px-3 py-1 border rounded-lg">Assign</button>
-            <button class="view px-3 py-1 border rounded-lg">View</button>
-            <button class="close px-3 py-1 border rounded-lg">Close</button>
-            <button class="reopen px-3 py-1 border rounded-lg">Reopen</button>
-          </div>
-        </header>
-
-        <section class="mt-3 grid gap-2">
-          <div class="flex items-center gap-3">
-            <label class="text-sm flex items-center gap-1">
-              <input type="radio" name="mode-__ID__" value="internal" checked> Internal note
-            </label>
-            <label class="text-sm flex items-center gap-1">
-              <input type="radio" name="mode-__ID__" value="public"> Public reply (email client)
-            </label>
-            <span class="text-xs text-gray-500">Public reply emails the client and logs to the thread.</span>
-          </div>
-          <textarea class="comment w-full border rounded-lg px-3 py-2" rows="3" placeholder="Write a note or a reply…"></textarea>
-          <div class="flex justify-end gap-2">
-            <button class="send bg-black text-white px-3 py-1 rounded-lg">Send</button>
-          </div>
-        </section>
-
-        <section class="details mt-4 hidden">
-          <div class="bg-gray-50 border rounded-lg p-3">
-            <div class="text-sm text-gray-700">
-              <div><span class="font-medium">Client:</span> <span class="clientName"></span> · <a class="clientEmail underline" target="_blank"></a></div>
-              <div class="mt-2">
-                <div class="font-medium">Original request:</div>
-                <div class="msg original mt-1"></div>
-              </div>
-              <div class="mt-3">
-                <div class="font-medium">Conversation:</div>
-                <div class="thread mt-1 grid gap-2"></div>
-              </div>
-            </div>
-          </div>
-        </section>
-      </article>
-    </template>
+      <div class="section-title" style="margin-top:16px">Internal note</div>
+      <textarea id="noteText" rows="3" placeholder="Add an internal-only note…"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button id="btnNote">Add note</button>
+        <span id="noteStatus" class="status"></span>
+      </div>
+    </div>
   </div>
+</div>
 
-  <script>
-    const API_BASE = "https://api.help.linearit.co";
+<script>
+  // ------- Config -------
+  const API = "https://api.help.linearit.co";
 
-    const $ = (s, el=document) => el.querySelector(s);
-    const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
-    const list = $("#list");
+  // ------- State -------
+  let currentTicket = null;       // number
+  let currentIssue = null;        // issue json
 
-    $("#btnShowLogin").onclick = () => $("#loginBox").classList.toggle("hidden");
-    $("#btnLogin").onclick = async () => {
-      const password = $("#password").value.trim();
-      $("#loginMsg").textContent = "Logging in…";
-      const res = await fetch(`${API_BASE}/admin/login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', body: JSON.stringify({ password })
-      });
-      const j = await res.json();
-      if (!res.ok) { $("#loginMsg").textContent = `❌ ${j.error || 'Login failed'}`; return; }
-      $("#loginMsg").textContent = "✅ Logged in";
-      load("open");
-    };
+  // ------- DOM -------
+  const $ = id => document.getElementById(id);
+  const $q = $("q"), $btnSearch = $("btnSearch"), $btnOpen = $("btnOpen"),
+        $btnClosed = $("btnClosed"), $btnRefresh = $("btnRefresh"), $list = $("list");
+  const $tTitle = $("tTitle"), $tMeta = $("tMeta"), $comments = $("comments");
+  const $replyText = $("replyText"), $replyFiles = $("replyFiles"), $fileList = $("fileList"),
+        $btnSend = $("btnSend"), $sendStatus = $("sendStatus");
+  const $noteText = $("noteText"), $btnNote = $("btnNote"), $noteStatus = $("noteStatus");
+  const $statusSel = $("statusSel"), $btnSetStatus = $("btnSetStatus");
+  const $whoami = $("whoami"), $env = $("env"), $allow = $("allow");
 
-    let currentView = "open";
-    $$(".tab").forEach(b => b.onclick = () => { $$(".tab").forEach(x=>x.classList.remove("bg-white")); b.classList.add("bg-white"); load(b.dataset.view); });
-    $("#btnSearch").onclick = () => load("search");
+  // ------- Utils -------
+  function esc(s){return (s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+  function humanBytes(n){if(n===0)return"0 B";if(!n)return"";const u=['B','KB','MB','GB'];let i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return n.toFixed(i?1:0)+" "+u[i]}
+  function setHashTicket(n){ location.hash = n ? `ticket=${n}` : "" }
+  function getHashTicket(){ const m = location.hash.match(/ticket=(\d+)/); return m ? m[1] : null }
 
-    function ageInfo(iso) {
-      const dt = new Date(iso);
-      const mins = Math.floor((Date.now() - dt.getTime())/60000);
-      const hrs = Math.floor(mins/60);
-      const days = Math.floor(hrs/24);
-      return {mins, hrs, days};
+  function makeBlobUrl(b64,mime){
+    try{
+      const bin=atob(b64), buf=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
+      return URL.createObjectURL(new Blob([buf],{type:mime||"application/octet-stream"}));
+    }catch{ return "#" }
+  }
+
+  function parseCommentBody(body){
+    const lines=(body||"").split(/\r?\n/);
+    const first=(lines[0]||"").trim();
+    let type="comment";
+    if(/^PUBLIC:/.test(first)) type="public";
+    if(/^INTERNAL:/.test(first)) type="internal";
+    const html=[];
+    const att=[];
+    for(const line of lines){
+      if(/^ATTACH-DATA:/.test(line)){
+        const rest=line.replace(/^ATTACH-DATA:/,"");
+        const [name="", mime="application/octet-stream", size="0", b64=""] = rest.split("|");
+        if(b64) att.push({name,mime,size:parseInt(size,10)||0,b64});
+        continue;
+      }
+      if(/!\[[^\]]*]\(data:[^)]+\)/.test(line)){
+        const m=line.match(/!\[([^\]]*)]\((data:[^)]+)\)/);
+        if(m){ html.push(`<img class="inline-img" alt="${esc(m[1])}" src="${m[2]}">`); continue; }
+      }
+      html.push(`<div>${esc(line)}</div>`);
     }
-    function findLabel(labels, prefix) {
-      const f = (labels||[]).find(l => l.name.startsWith(prefix));
-      return f ? f.name.split(":")[1].trim() : "";
+    if(att.length>0){
+      html.push(`<div class="attachments">`);
+      for(const a of att){
+        const href=makeBlobUrl(a.b64,a.mime);
+        const label=`${a.name} • ${a.mime} • ${humanBytes(a.size)}`;
+        html.push(`<span class="dl"><a href="${href}" download="${esc(a.name)}">Download ${esc(label)}</a></span>`);
+      }
+      html.push(`</div>`);
     }
-    function slaClass(item) {
-      const age = ageInfo(item.created_at);
-      const high = (item.labels||[]).some(l => l.name === 'priority: high');
-      if (!high) return "";
-      if (age.hrs >= 8) return "sla-breach";
-      if (age.hrs >= 6) return "sla-warn";
-      return "";
+    return {type, html:html.join("")};
+  }
+
+  function renderComments(issue, comments){
+    $comments.innerHTML="";
+    // issue body
+    const div0=document.createElement("div");
+    div0.className="comment";
+    div0.innerHTML=`<span class="badge">Issue body</span><div style="height:6px"></div>${parseCommentBody(issue.body||"").html}`;
+    $comments.appendChild(div0);
+    (comments||[]).forEach(c=>{
+      const {type,html}=parseCommentBody(c.body||"");
+      const d=document.createElement("div");
+      d.className="comment";
+      const badge= type==="public" ? `<span class="badge public">PUBLIC</span>` :
+                    type==="internal" ? `<span class="badge internal">INTERNAL</span>` :
+                    `<span class="badge">Comment</span>`;
+      d.innerHTML=`${badge}<div style="height:6px"></div>${html}`;
+      $comments.appendChild(d);
+    });
+  }
+
+  // ------- API -------
+  async function diag(){
+    const r = await fetch(`${API}/admin/diag`, {credentials:"include"});
+    if(r.status===401){ location.href="/admin-login.html"; return; } // optional
+    const j = await r.json().catch(()=>({}));
+    $whoami.textContent = j.hasStaffPassword ? "auth:enabled" : "auth:missing";
+    $env.textContent = j.hasSessionSecret ? `sess:${j.sessionLen}` : "sess:missing";
+    $allow.textContent = j.allowOrigin || "*";
+  }
+
+  async function listTickets(view="open", q=""){
+    const params=new URLSearchParams();
+    if(view==="closed") params.set("state","closed"); else params.set("state","open");
+    if(q){ // search uses dedicated endpoint
+      const r=await fetch(`${API}/admin/tickets?view=search&q=${encodeURIComponent(q)}`,{credentials:"include"});
+      const j=await r.json(); if(!j.ok) throw new Error("Search failed");
+      return j.items||[];
     }
-    function parseClient(issueBody) {
-      const m = /\*\*From:\*\*\s*(.+?)\s*<([^>]+)>/i.exec(issueBody || "");
-      const name = m ? m[1] : "";
-      const email = m ? m[2] : "";
-      const parts = (issueBody || "").split(/\n---\n/);
-      const original = parts.length > 1 ? parts[1].trim() : (issueBody||"").trim();
-      return { name, email, original };
-    }
+    const r=await fetch(`${API}/admin/tickets?${params}`,{credentials:"include"});
+    const j=await r.json(); if(!j.ok) throw new Error("List failed");
+    return j.items||j; // compat
+  }
 
-    async function load(view) {
-      currentView = view;
-      list.innerHTML = "Loading…";
-      const params = new URLSearchParams();
-      params.set('view', view);
-      const assignee = $("#assignee").value.trim().replace(/^@/, '');
-      if (view === 'mine' && assignee) params.set('assignee', assignee);
-      const q = $("#search").value.trim();
-      if (view === 'search' && q) params.set('q', q);
-      const res = await fetch(`${API_BASE}/admin/tickets?${params}`, { credentials: 'include' });
-      const j = await res.json();
-      if (!res.ok) { list.textContent = `Error: ${j.error || 'Failed to load'}`; return; }
-      render(j.items || []);
-    }
+  async function loadTicket(n){
+    const r=await fetch(`${API}/admin/tickets/${n}`,{credentials:"include"});
+    const j=await r.json(); if(!j.ok) throw new Error("Load ticket failed");
+    currentIssue=j.issue; currentTicket=n;
+    $tTitle.textContent = `${j.issue.title}`;
+    $tMeta.textContent = `#${n} • ${j.issue.state} • Updated ${new Date(j.issue.updated_at).toLocaleString()}`;
+    renderComments(j.issue, j.comments);
+    setHashTicket(n);
+  }
 
-    function render(items) {
-      list.innerHTML = "";
-      items.forEach(it => {
-        const t = $("#cardTpl").content.cloneNode(true);
-        const link = $(".ticket-link", t);
-        link.textContent = `#${it.number} · ${it.title}`;
-        link.href = it.html_url;
-        const meta = $(".meta", t);
-        const age = ageInfo(it.created_at);
-        const upd = new Date(it.updated_at || it.created_at).toLocaleString();
-        meta.textContent = `opened ${age.days}d ${age.hrs%24}h ago · updated ${upd} · labels: ${(it.labels||[]).map(l=>l.name).join(', ')}`;
+  async function setStatus(n, status){
+    const r=await fetch(`${API}/admin/tickets/${n}/status`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      credentials:"include",
+      body:JSON.stringify({status})
+    });
+    const j=await r.json(); if(!r.ok) throw new Error(j.error||"status failed");
+    return j;
+  }
 
-        const article = t.firstElementChild;
-        const cls = slaClass(it);
-        if (cls) article.classList.add(cls);
+  async function sendReply(n, text, attachments){
+    const r=await fetch(`${API}/admin/tickets/${n}/reply`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      credentials:"include",
+      body:JSON.stringify({text,attachments})
+    });
+    const j=await r.json(); if(!r.ok) throw new Error(j.error||"reply failed");
+    return j;
+  }
 
-        const statusSel = $(".status", t);
-        statusSel.value = findLabel(it.labels, "status:") || (it.state === 'closed' ? 'closed' : 'new');
+  async function addNote(n, text){
+    const r=await fetch(`${API}/admin/tickets/${n}/comment`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      credentials:"include",
+      body:JSON.stringify({text})
+    });
+    const j=await r.json(); if(!r.ok) throw new Error(j.error||"note failed");
+    return j;
+  }
 
-        const assignBtn = $(".assign", t);
-        const assigneeInput = $(".assignee", t);
-        const closeBtn = $(".close", t);
-        const reopenBtn = $(".reopen", t);
-        const viewBtn = $(".view", t);
-        const details = $(".details", t);
-        const commentTa = $(".comment", t);
-        const sendBtn = $(".send", t);
-        const radios = $$("input[type=radio]", t);
-        const clientName = $(".clientName", t);
-        const clientEmail = $(".clientEmail", t);
-        const original = $(".original", t);
-        const thread = $(".thread", t);
+  // ------- UI actions -------
+  async function refreshList(kind){
+    $list.textContent="Loading…";
+    try{
+      const items = await listTickets(kind||"open", $q.value.trim());
+      if(items.length===0){ $list.textContent="No tickets."; return; }
+      $list.innerHTML = "";
+      for(const it of items){
+        const div=document.createElement("div");
+        div.className="item";
+        div.innerHTML=`<div style="font-weight:600">${esc(it.title)} <span class="muted">#${it.number}</span></div>
+                       <div class="muted">${esc((it.labels||[]).map(l=>l.name).join(", "))}</div>`;
+        div.onclick=()=>loadTicket(it.number);
+        $list.appendChild(div);
+      }
+    }catch(e){ $list.textContent="Failed to load list."; }
+  }
 
-        statusSel.onchange = async () => {
-          await fetch(`${API_BASE}/admin/tickets/${it.number}/status`, {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            credentials:'include', body: JSON.stringify({ status: statusSel.value })
-          });
-          load(currentView);
-        };
-        assignBtn.onclick = async () => {
-          const a = assigneeInput.value.trim(); if (!a) return;
-          await fetch(`${API_BASE}/admin/tickets/${it.number}/assign`, {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            credentials:'include', body: JSON.stringify({ assignee: a })
-          });
-          load(currentView);
-        };
-        closeBtn.onclick = async () => {
-          await fetch(`${API_BASE}/admin/tickets/${it.number}/close`, { method:'POST', credentials:'include' });
-          load(currentView);
-        };
-        reopenBtn.onclick = async () => {
-          await fetch(`${API_BASE}/admin/tickets/${it.number}/reopen`, { method:'POST', credentials:'include' });
-          load(currentView);
-        };
+  function showChosenFiles(){
+    const files=Array.from($replyFiles.files||[]);
+    if(files.length===0){ $fileList.textContent=""; return; }
+    let total=0;
+    $fileList.innerHTML = files.map(f=>{ total+=f.size||0; return `${esc(f.name)} — ${esc(f.type||"application/octet-stream")} — ${humanBytes(f.size)}`}).join("<br>");
+    $fileList.innerHTML += `<div><em>Total ${humanBytes(total)}</em></div>`;
+  }
 
-        viewBtn.onclick = async () => {
-          if (!details.classList.contains("hidden")) { details.classList.add("hidden"); thread.innerHTML=""; return; }
-          const res = await fetch(`${API_BASE}/admin/tickets/${it.number}`, { credentials: 'include' });
-          const j = await res.json();
-          if (!res.ok) { alert(j.error || "Failed to load details"); return; }
-          const info = parseClient(j.issue.body || "");
-          clientName.textContent = info.name || "(no name)";
-          clientEmail.textContent = info.email || "(no email)";
-          if (info.email) clientEmail.href = `mailto:${info.email}`;
-          original.textContent = info.original || "(empty)";
-          thread.innerHTML = "";
-          (j.comments || []).forEach(c => {
-            const div = document.createElement("div");
-            const isPublic = (c.body || "").startsWith("PUBLIC:");
-            div.className = "comment-item " + (isPublic ? "comment-public" : "comment-internal");
-            const when = new Date(c.created_at).toLocaleString();
-            const body = isPublic ? c.body.replace(/^PUBLIC:\s*/,'') : (c.body||"");
-            div.innerHTML = `<div class="text-xs text-gray-500">${c.user?.login || 'user'} · ${when} ${isPublic ? "· to client" : "· internal"}</div><div class="msg mt-1">${body}</div>`;
-            thread.appendChild(div);
-          });
-          details.classList.remove("hidden");
-        };
+  function fileToBase64(file){
+    return new Promise((res,rej)=>{
+      const fr=new FileReader();
+      fr.onload=()=>res(String(fr.result).split(",")[1]||"");
+      fr.onerror=rej;
+      fr.readAsDataURL(file);
+    });
+  }
 
-        sendBtn.onclick = async () => {
-          const text = commentTa.value.trim(); if (!text) return;
-          const mode = radios.find(r => r.checked)?.value || "internal";
-          if (mode === "internal") {
-            await fetch(`${API_BASE}/admin/tickets/${it.number}/comment`, {
-              method:'POST', headers:{'Content-Type':'application/json'},
-              credentials:'include', body: JSON.stringify({ text })
-            });
-            const status = findLabel(it.labels, "status:");
-            if (status === "new") {
-              await fetch(`${API_BASE}/admin/tickets/${it.number}/status`, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                credentials:'include', body: JSON.stringify({ status: "in-progress" })
-              });
-            }
-          } else {
-            await fetch(`${API_BASE}/admin/tickets/${it.number}/reply`, {
-              method:'POST', headers:{'Content-Type':'application/json'},
-              credentials:'include', body: JSON.stringify({ text })
-            });
-            await fetch(`${API_BASE}/admin/tickets/${it.number}/status`, {
-              method:'POST', headers:{'Content-Type':'application/json'},
-              credentials:'include', body: JSON.stringify({ status: "waiting" })
-            });
-          }
-          commentTa.value = "";
-          if (!details.classList.contains("hidden")) viewBtn.click();
-          else load(currentView);
-        };
+  // ------- Bind events -------
+  $btnSearch.onclick=()=>refreshList("search");
+  $btnOpen.onclick=()=>{ $q.value=""; refreshList("open"); }
+  $btnClosed.onclick=()=>{ $q.value=""; refreshList("closed"); }
+  $btnRefresh.onclick=()=>refreshList(getHashTicket()?undefined:"open");
+  $replyFiles.onchange=showChosenFiles;
 
-        list.appendChild(t);
-      });
-    }
-  </script>
+  $btnSetStatus.onclick=async ()=>{
+    if(!currentTicket) return;
+    const status=$statusSel.value.trim(); if(!status) return;
+    $btnSetStatus.disabled=true;
+    try{ await setStatus(currentTicket,status); await loadTicket(currentTicket); }
+    catch(e){ alert("Status error"); }
+    finally{ $btnSetStatus.disabled=false; }
+  };
+
+  $btnSend.onclick=async ()=>{
+    if(!currentTicket) return;
+    const text=($replyText.value||"").trim();
+    const files=Array.from($replyFiles.files||[]);
+    // limits
+    const MAX_PER=5*1024*1024, MAX_TOTAL=10*1024*1024;
+    let total=0;
+    for(const f of files){ if(f.size>MAX_PER){ $sendStatus.textContent=`Too big: ${f.name}`; return; } total+=f.size; }
+    if(total>MAX_TOTAL){ $sendStatus.textContent=`Total exceeds 10 MB`; return; }
+
+    $btnSend.disabled=true; $sendStatus.textContent="Encoding…";
+    try{
+      const attachments=[];
+      for(const f of files){
+        const b64=await fileToBase64(f);
+        attachments.push({filename:f.name, contentType:f.type||"application/octet-stream", base64:b64});
+      }
+      $sendStatus.textContent="Sending…";
+      const j=await sendReply(currentTicket,text,attachments);
+      $replyText.value=""; $replyFiles.value=""; showChosenFiles();
+      await loadTicket(currentTicket);
+      if(j.email && j.email.ok) $sendStatus.textContent="Sent ✓";
+      else if(j.email && j.email.status) $sendStatus.textContent=`Resend status ${j.email.status}`;
+      else $sendStatus.textContent="Logged only (no email).";
+    }catch(e){ $sendStatus.textContent="Error sending"; }
+    finally{ $btnSend.disabled=false; }
+  };
+
+  $btnNote.onclick=async ()=>{
+    if(!currentTicket) return;
+    const text=($noteText.value||"").trim(); if(!text){ $noteStatus.textContent="Type something"; return; }
+    $btnNote.disabled=true; $noteStatus.textContent="Saving…";
+    try{ await addNote(currentTicket,text); $noteText.value=""; await loadTicket(currentTicket); $noteStatus.textContent="Added ✓"; }
+    catch(e){ $noteStatus.textContent="Error"; }
+    finally{ $btnNote.disabled=false; }
+  };
+
+  // ------- Init -------
+  (async function init(){
+    await diag();
+    // open from hash if present
+    const t = getHashTicket();
+    if(t){ refreshList("open").then(()=>loadTicket(t)); }
+    else { refreshList("open"); }
+  })();
+
+  // react to hash change (deep-link navigation)
+  window.addEventListener("hashchange", ()=>{
+    const t=getHashTicket();
+    if(t && t!==currentTicket) loadTicket(t);
+  });
+</script>
 </body>
 </html>
