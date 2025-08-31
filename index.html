@@ -1,80 +1,90 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Linear Desk – Submit a Ticket</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="utf-8"/>
+  <title>Linear Desk — Submit a ticket</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    body{font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0;background:#0b1220;color:#e5e7eb}
+    .wrap{max-width:720px;margin:40px auto;padding:0 16px}
+    .card{background:#0f172a;border:1px solid #1f2937;border-radius:14px;padding:16px}
+    input,textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid #1f2937;background:#0b1730;color:#e5e7eb}
+    label{display:block;margin:10px 0 6px;color:#94a3b8}
+    button{background:#111827;color:#fff;border:none;border-radius:10px;padding:10px 14px;cursor:pointer}
+    button:hover{background:#1f2937}
+    .muted{color:#94a3b8}
+  </style>
 </head>
-<body class="min-h-screen bg-gray-50 text-gray-900">
-  <main class="max-w-xl mx-auto p-6">
-    <h1 class="text-2xl font-bold mb-2">Submit a Ticket</h1>
-    <p class="mb-6 text-sm text-gray-600">Describe your issue below. We’ll email you back.</p>
-    <form id="ticketForm" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium">Your name</label>
-        <input name="name" class="mt-1 w-full rounded-xl border px-3 py-2" required />
+<body>
+<div class="wrap">
+  <h1>Submit a support request</h1>
+  <div class="card">
+    <form id="f">
+      <label>Name</label>
+      <input name="name" required/>
+
+      <label>Email</label>
+      <input name="email" type="email" required/>
+
+      <label>Subject</label>
+      <input name="subject" required/>
+
+      <label>Message <span class="muted">(if applicable, please add a screenshot or picture so we can help you better)</span></label>
+      <textarea name="message" rows="6" required></textarea>
+
+      <div style="display:flex; gap:8px; margin-top:8px">
+        <div style="flex:1">
+          <label>Priority</label>
+          <select name="priority">
+            <option>normal</option>
+            <option>high</option>
+            <option>urgent</option>
+          </select>
+        </div>
+        <div style="flex:1">
+          <label>Category</label>
+          <select name="category">
+            <option>general</option>
+            <option>hardware</option>
+            <option>software</option>
+            <option>network</option>
+          </select>
+        </div>
       </div>
-      <div>
-        <label class="block text-sm font-medium">Email</label>
-        <input name="email" type="email" class="mt-1 w-full rounded-xl border px-3 py-2" required />
+
+      <label style="margin-top:10px">Attachments</label>
+      <input name="files" type="file" multiple/>
+
+      <!-- honeypot (hidden to humans) -->
+      <input name="website" style="display:none"/>
+
+      <div style="margin-top:14px; display:flex; gap:8px; align-items:center">
+        <button type="submit">Submit</button>
+        <span id="status" class="muted"></span>
       </div>
-      <div>
-        <label class="block text-sm font-medium">Subject</label>
-        <input name="subject" class="mt-1 w-full rounded-xl border px-3 py-2" required />
-      </div>
-      <div>
-        <label class="block text-sm font-medium">Priority</label>
-        <select name="priority" class="mt-1 w-full rounded-xl border px-3 py-2">
-          <option value="low">Low</option>
-          <option value="normal" selected>Normal</option>
-          <option value="high">High</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium">Category</label>
-        <select name="category" class="mt-1 w-full rounded-xl border px-3 py-2">
-          <option value="general" selected>General</option>
-          <option value="password">Password</option>
-          <option value="network">Network</option>
-          <option value="printer">Printer</option>
-          <option value="software">Software</option>
-          <option value="hardware">Hardware</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium">Message</label>
-        <textarea name="message" rows="6" class="mt-1 w-full rounded-xl border px-3 py-2" required></textarea>
-      </div>
-      <!-- Honeypot (hidden) -->
-      <input name="honeypot" class="hidden" tabindex="-1" autocomplete="off" />
-      <button class="rounded-xl bg-black text-white px-4 py-2" type="submit">Send Ticket</button>
-      <p id="result" class="text-sm mt-3"></p>
     </form>
-  </main>
-  <script>
-    const API = "https://YOUR-WORKER-SUBDOMAIN.workers.dev"; // ← replace with your Worker URL
-    const form = document.getElementById('ticketForm');
-    const result = document.getElementById('result');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      result.textContent = "Sending...";
-      const data = Object.fromEntries(new FormData(form).entries());
-      try {
-        const res = await fetch(API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        const j = await res.json();
-        if (!res.ok) throw j;
-        result.innerHTML = `:white_check_mark: Ticket created: <a class="underline" target="_blank" href="${j.issue_url}">#${j.issue_number}</a>`;
-        form.reset();
-      } catch (err) {
-        console.error(err);
-        result.textContent = `:x: Error: ${err.error || 'Unknown error'}`;
-      }
-    });
-  </script>
+  </div>
+</div>
+
+<script>
+const API = "https://api.help.linearit.co";
+
+document.getElementById("f").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const st = document.getElementById("status");
+  st.textContent = "Submitting…";
+
+  const fd = new FormData(e.target);
+  try{
+    const r = await fetch(`${API}/`, { method:"POST", body: fd });
+    const j = await r.json().catch(()=> ({}));
+    if(!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+    st.textContent = `Ticket created! #${j.issue_number}`;
+    e.target.reset();
+  }catch(err){
+    st.textContent = `Error: ${err.message || "Submit failed"}`;
+  }
+});
+</script>
 </body>
 </html>
