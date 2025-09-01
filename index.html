@@ -68,8 +68,8 @@
 const API = "https://api.help.linearit.co";
 const $ = id => document.getElementById(id);
 
-const PER_MAX = 2 * 1024 * 1024;   // 2 MB per file (UI guard)
-const TOTAL_MAX = 6 * 1024 * 1024; // 6 MB total (UI guard)
+const PER_MAX = 6 * 1024 * 1024;   // UI guard: up to 6 MB per file
+const TOTAL_MAX = 10 * 1024 * 1024; // UI guard: up to 10 MB total
 
 function humanBytes(n){if(n===0)return"0 B";if(!n)return"";const u=['B','KB','MB','GB'];let i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return n.toFixed(i?1:0)+" "+u[i]}
 
