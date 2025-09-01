@@ -2,87 +2,103 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>Linear Desk — Submit a ticket</title>
+  <title>Linear Desk — Request Support</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <style>
-    body{font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0;background:#0b1220;color:#e5e7eb}
-    .wrap{max-width:720px;margin:40px auto;padding:0 16px}
-    .card{background:#0f172a;border:1px solid #1f2937;border-radius:14px;padding:16px}
-    input,textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid #1f2937;background:#0b1730;color:#e5e7eb}
-    label{display:block;margin:10px 0 6px;color:#94a3b8}
-    button{background:#111827;color:#fff;border:none;border-radius:10px;padding:10px 14px;cursor:pointer}
+    :root{--bg:#0b1220;--panel:#0f172a;--muted:#94a3b8;--text:#e5e7eb;--border:#1f2937}
+    html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,Segoe UI,Roboto,Arial}
+    .wrap{max-width:720px;margin:32px auto;padding:0 16px}
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px}
+    label{display:block;margin:10px 0 4px;color:#cbd5e1}
+    input,textarea,select{width:100%;background:#0b1730;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px}
+    button{background:#111827;color:#fff;border:none;border-radius:10px;padding:10px 14px;cursor:pointer;margin-top:12px}
     button:hover{background:#1f2937}
-    .muted{color:#94a3b8}
+    .muted{color:var(--muted);font-size:14px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Submit a support request</h1>
+  <h1>Request Support</h1>
   <div class="card">
-    <form id="f">
-      <label>Name</label>
-      <input name="name" required/>
+    <form id="f" enctype="multipart/form-data">
+      <input type="text" name="honeypot" style="display:none" autocomplete="off" />
+      <label>Your name</label>
+      <input name="name" required placeholder="Full name"/>
 
-      <label>Email</label>
-      <input name="email" type="email" required/>
+      <label>Your email</label>
+      <input name="email" type="email" required placeholder="you@example.com"/>
 
       <label>Subject</label>
-      <input name="subject" required/>
+      <input name="subject" required placeholder="Brief summary"/>
 
-      <label>Message <span class="muted">(if applicable, please add a screenshot or picture so we can help you better)</span></label>
-      <textarea name="message" rows="6" required></textarea>
+      <label>Message</label>
+      <textarea name="message" rows="6" required placeholder="Describe what’s going on…"></textarea>
 
-      <div style="display:flex; gap:8px; margin-top:8px">
+      <div class="row">
         <div style="flex:1">
           <label>Priority</label>
           <select name="priority">
-            <option>normal</option>
-            <option>high</option>
-            <option>urgent</option>
+            <option value="normal">Normal</option>
+            <option value="high">High</option>
           </select>
         </div>
         <div style="flex:1">
           <label>Category</label>
           <select name="category">
-            <option>general</option>
-            <option>hardware</option>
-            <option>software</option>
-            <option>network</option>
+            <option value="general">General</option>
+            <option value="hardware">Hardware</option>
+            <option value="software">Software</option>
+            <option value="network">Network</option>
           </select>
         </div>
       </div>
 
-      <label style="margin-top:10px">Attachments</label>
-      <input name="files" type="file" multiple/>
+      <label>Attachments <span class="muted">(optional — if applicable, please add a screenshot or photo)</span></label>
+      <input type="file" name="files" id="files" multiple />
+      <div id="chosen" class="muted"></div>
 
-      <!-- honeypot (hidden to humans) -->
-      <input name="website" style="display:none"/>
-
-      <div style="margin-top:14px; display:flex; gap:8px; align-items:center">
-        <button type="submit">Submit</button>
-        <span id="status" class="muted"></span>
-      </div>
+      <button id="btn">Submit</button>
+      <div id="msg" class="muted"></div>
     </form>
   </div>
 </div>
 
 <script>
 const API = "https://api.help.linearit.co";
+const $ = id => document.getElementById(id);
 
-document.getElementById("f").addEventListener("submit", async (e)=>{
+function humanBytes(n){if(n===0)return"0 B";if(!n)return"";const u=['B','KB','MB','GB'];let i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return n.toFixed(i?1:0)+" "+u[i]}
+
+const filesInput = $("files");
+const chosen = $("chosen");
+filesInput.onchange = () => {
+  const fs = Array.from(filesInput.files || []);
+  if (fs.length === 0) { chosen.textContent = ""; return; }
+  let total = 0;
+  chosen.innerHTML = fs.map(f => { total += f.size||0; return `${f.name} — ${f.type||"application/octet-stream"} — ${humanBytes(f.size)}`; }).join(" | ");
+  chosen.innerHTML += ` <em>(Total ${humanBytes(total)})</em>`;
+};
+
+$("f").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const st = document.getElementById("status");
-  st.textContent = "Submitting…";
+  $("msg").textContent = "Submitting…";
 
-  const fd = new FormData(e.target);
-  try{
-    const r = await fetch(`${API}/`, { method:"POST", body: fd });
-    const j = await r.json().catch(()=> ({}));
-    if(!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
-    st.textContent = `Ticket created! #${j.issue_number}`;
-    e.target.reset();
-  }catch(err){
-    st.textContent = `Error: ${err.message || "Submit failed"}`;
+  const fd = new FormData($("f"));
+  // IMPORTANT: ensure "files" appears once per attachment (browser does this automatically for multiple)
+
+  try {
+    const r = await fetch(`${API}/`, { method: "POST", body: fd, credentials: "include" });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) {
+      $("msg").textContent = `Error: ${(j && j.error) || r.status}`;
+      return;
+    }
+    $("msg").textContent = `Submitted! Ticket #${j.issue_number}`;
+    $("f").reset();
+    chosen.textContent = "";
+  } catch (e) {
+    $("msg").textContent = "Network error.";
   }
 });
 </script>
