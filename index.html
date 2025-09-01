@@ -59,7 +59,7 @@
       <div id="chosen" class="muted"></div>
 
       <button id="btn">Submit</button>
-      <div id="msg" class="muted"></div>
+      <div id="msg" class="muted" style="margin-top:8px"></div>
     </form>
   </div>
 </div>
@@ -68,25 +68,37 @@
 const API = "https://api.help.linearit.co";
 const $ = id => document.getElementById(id);
 
+const PER_MAX = 2 * 1024 * 1024;   // 2 MB per file (UI guard)
+const TOTAL_MAX = 6 * 1024 * 1024; // 6 MB total (UI guard)
+
 function humanBytes(n){if(n===0)return"0 B";if(!n)return"";const u=['B','KB','MB','GB'];let i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return n.toFixed(i?1:0)+" "+u[i]}
 
 const filesInput = $("files");
 const chosen = $("chosen");
-filesInput.onchange = () => {
+
+function refreshChosen() {
   const fs = Array.from(filesInput.files || []);
-  if (fs.length === 0) { chosen.textContent = ""; return; }
+  if (fs.length === 0) { chosen.textContent = ""; return true; }
   let total = 0;
-  chosen.innerHTML = fs.map(f => { total += f.size||0; return `${f.name} — ${f.type||"application/octet-stream"} — ${humanBytes(f.size)}`; }).join(" | ");
+  let ok = true;
+  chosen.innerHTML = fs.map(f => {
+    total += f.size || 0;
+    if (f.size > PER_MAX) ok = false;
+    return `${f.name} — ${f.type || "application/octet-stream"} — ${humanBytes(f.size)}`;
+  }).join(" | ");
   chosen.innerHTML += ` <em>(Total ${humanBytes(total)})</em>`;
-};
+  if (total > TOTAL_MAX) ok = false;
+  if (!ok) chosen.innerHTML += ` <span style="color:#f87171">[Too large — max ${humanBytes(PER_MAX)} per file, ${humanBytes(TOTAL_MAX)} total]</span>`;
+  return ok;
+}
+filesInput.onchange = refreshChosen;
 
 $("f").addEventListener("submit", async (e) => {
   e.preventDefault();
   $("msg").textContent = "Submitting…";
+  if (!refreshChosen()) { $("msg").textContent = "Attachments too large. Please reduce size."; return; }
 
   const fd = new FormData($("f"));
-  // IMPORTANT: ensure "files" appears once per attachment (browser does this automatically for multiple)
-
   try {
     const r = await fetch(`${API}/`, { method: "POST", body: fd, credentials: "include" });
     const j = await r.json().catch(() => ({}));
