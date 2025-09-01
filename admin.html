@@ -1,365 +1,346 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<title>Linear Desk — Admin</title>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<style>
-  :root{
-    --bg:#0b1220; --panel:#0f172a; --muted:#94a3b8; --text:#e5e7eb; --border:#1f2937; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444; --accent:#60a5fa;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-  .wrap{max-width:1200px;margin:24px auto;padding:0 16px}
-  header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-  h1{font-size:20px;margin:0}
-  .pill{font-size:12px;border:1px solid var(--border);border-radius:999px;padding:4px 8px;color:var(--muted)}
-  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-  .grid{display:grid;grid-template-columns:320px 1fr;gap:16px}
-  @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
-  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
-  .section-title{font-size:13px;color:var(--muted);margin:6px 0 10px}
-  .search{display:flex;gap:8px}
-  input[type="text"],textarea{width:100%;background:#0b1730;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px}
-  button{background:#111827;color:#fff;border:none;border-radius:10px;padding:8px 12px;cursor:pointer}
-  button.primary{background:#1f2937}
-  button.green{background:#166534}
-  button:disabled{opacity:.6;cursor:not-allowed}
-  .list{max-height:70vh;overflow:auto}
-  .item{border:1px solid var(--border);border-radius:10px;padding:10px;margin:8px 0;background:#0b1427;cursor:pointer}
-  .item:hover{outline:1px solid #1f2d47}
-  .muted{color:var(--muted)}
-  .comment{border:1px solid var(--border);border-radius:10px;padding:10px;margin:10px 0;background:#0a1428}
-  .badge{display:inline-block;border:1px solid var(--border);border-radius:8px;padding:2px 6px;margin-right:6px;font-size:12px}
-  .badge.public{border-color:rgba(34,197,94,.4)}
-  .badge.internal{border-color:rgba(96,165,250,.4)}
-  .attachments{margin-top:6px;font-size:13px}
-  .dl{display:inline-flex;align-items:center;gap:8px;margin:6px 6px 0 0}
-  .dl a{color:#cbd5e1;text-decoration:none;border:1px solid var(--border);padding:6px 10px;border-radius:8px}
-  .inline-img{display:block;max-width:280px;max-height:180px;border-radius:8px;border:1px solid var(--border);margin:8px 0}
-  .status{font-size:12px;color:var(--muted)}
-  .right-head{display:flex;justify-content:space-between;gap:12px;align-items:center}
-</style>
+  <meta charset="utf-8"/>
+  <title>Linear Desk — Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    :root{--bg:#0b1220;--panel:#0f172a;--muted:#94a3b8;--text:#e5e7eb;--border:#1f2937;--accent:#6ee7b7}
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial}
+    .wrap{max-width:1200px;margin:26px auto;padding:0 16px}
+    header{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+    h1{font-size:20px;margin:0}
+    .pill{font-size:12px;border:1px solid var(--border);border-radius:999px;padding:4px 8px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:16px}
+    @media (max-width:980px){.grid{grid-template-columns:1fr}}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+    input,textarea,select{width:100%;background:#0b1730;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px}
+    button{background:#111827;color:#fff;border:none;border-radius:10px;padding:8px 12px;cursor:pointer}
+    button:hover{background:#1f2937}
+    .list{max-height:70vh;overflow:auto}
+    .item{border:1px solid var(--border);border-radius:10px;padding:10px;margin:8px 0;background:#0b1427;cursor:pointer}
+    .item:hover{outline:1px solid #1f2d47}
+    .muted{color:var(--muted)}
+    .comment{border:1px solid var(--border);border-radius:10px;padding:10px;margin:10px 0;background:#0a1428}
+    .badge{display:inline-block;border:1px solid var(--border);border-radius:8px;padding:2px 6px;margin-right:6px;font-size:12px}
+    .badge.public{border-color:rgba(34,197,94,.45)}
+    .badge.internal{border-color:rgba(96,165,250,.45)}
+    .attachments{margin-top:8px}
+    .dl{display:inline-flex;align-items:center;gap:8px;margin:6px 8px 0 0}
+    .dl a{color:#e5e7eb;text-decoration:none;border:1px solid var(--border);padding:6px 10px;border-radius:8px}
+    .inline-img{display:block;max-width:280px;max-height:180px;border-radius:8px;border:1px solid var(--border);margin:8px 0}
+    #loginBox{max-width:420px;margin:80px auto}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>Linear Desk — Admin</h1>
-    <span class="pill" id="whoami"></span>
-    <span class="pill" id="env"></span>
-    <span class="pill" id="allow"></span>
-  </header>
 
-  <div class="grid">
-    <!-- LEFT: Ticket list -->
-    <div class="panel">
-      <div class="section-title">Tickets</div>
-      <div class="search">
-        <input id="q" type="text" placeholder="Search (title, text)…"/>
-        <button id="btnSearch" class="primary">Search</button>
-        <button id="btnOpen" class="primary">Open</button>
-        <button id="btnClosed" class="primary">Closed</button>
-        <button id="btnRefresh">Refresh</button>
-      </div>
-      <div class="list" id="list">Loading…</div>
+  <!-- Login -->
+  <div id="loginBox" class="panel" style="display:none;">
+    <h2>Staff Login</h2>
+    <input id="pw" type="password" placeholder="Enter staff password"/>
+    <div class="row" style="margin-top:10px">
+      <button id="btnLogin">Login</button>
+      <span id="loginMsg" class="muted"></span>
     </div>
+  </div>
 
-    <!-- RIGHT: Ticket view -->
-    <div class="panel">
-      <div class="right-head">
-        <div>
-          <div id="tTitle" style="font-weight:600"></div>
-          <div class="muted" id="tMeta"></div>
+  <!-- Admin app -->
+  <div id="app" style="display:none;">
+    <header>
+      <h1>Linear Desk — Admin</h1>
+      <span class="pill" id="whoami"></span>
+      <span class="pill" id="sess"></span>
+      <span class="pill" id="allow"></span>
+      <span style="flex:1"></span>
+      <button id="btnLogout" title="Show login">Logout</button>
+    </header>
+
+    <div class="grid">
+      <!-- LEFT -->
+      <div class="panel">
+        <div class="row" style="margin-bottom:8px">
+          <input id="q" type="text" placeholder="Search…"/>
+          <button id="btnSearch">Search</button>
+          <button id="btnOpen">Open</button>
+          <button id="btnClosed">Closed</button>
+          <button id="btnRefresh">Refresh</button>
         </div>
-        <div class="row">
-          <select id="statusSel">
-            <option value="">Set status…</option>
-            <option>new</option>
-            <option>waiting</option>
-            <option>working</option>
-            <option>done</option>
-          </select>
-          <button id="btnSetStatus">Save</button>
+        <div class="list" id="list">Loading…</div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="panel">
+        <div class="row" style="justify-content:space-between">
+          <div>
+            <div id="tTitle" style="font-weight:600">Select a ticket…</div>
+            <div class="muted" id="tMeta"></div>
+          </div>
+          <div class="row">
+            <select id="statusSel" style="width:auto;min-width:150px">
+              <option value="">Set status…</option>
+              <option>new</option>
+              <option>waiting</option>
+              <option>working</option>
+              <option>done</option>
+            </select>
+            <button id="btnSetStatus">Save</button>
+          </div>
         </div>
-      </div>
 
-      <div class="section-title">Conversation</div>
-      <div id="comments">Select a ticket…</div>
+        <div class="muted" style="margin:8px 0">Conversation</div>
+        <div id="comments">—</div>
 
-      <div class="section-title">Reply to client</div>
-      <textarea id="replyText" rows="5" placeholder="Write your reply to the client…"></textarea>
-      <div class="row" style="margin-top:8px">
-        <input id="replyFiles" type="file" multiple/>
-        <span id="fileList" class="muted"></span>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <button id="btnSend" class="green">Send reply</button>
-        <span id="sendStatus" class="status"></span>
-      </div>
+        <div class="muted" style="margin:14px 0 6px">Reply to client</div>
+        <textarea id="replyText" rows="4" placeholder="Write your reply…"></textarea>
+        <div class="row" style="margin-top:8px">
+          <input id="replyFiles" type="file" multiple/>
+          <span id="fileList" class="muted"></span>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="btnSend">Send reply</button>
+          <span id="sendStatus" class="muted"></span>
+        </div>
 
-      <div class="section-title" style="margin-top:16px">Internal note</div>
-      <textarea id="noteText" rows="3" placeholder="Add an internal-only note…"></textarea>
-      <div class="row" style="margin-top:10px">
-        <button id="btnNote">Add note</button>
-        <span id="noteStatus" class="status"></span>
+        <div class="muted" style="margin:16px 0 6px">Internal note</div>
+        <textarea id="noteText" rows="3" placeholder="Add an internal-only note…"></textarea>
+        <div class="row" style="margin-top:10px">
+          <button id="btnNote">Add note</button>
+          <span id="noteStatus" class="muted"></span>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  // ------- Config -------
-  const API = "https://api.help.linearit.co";
+const API="https://api.help.linearit.co";
+const $=id=>document.getElementById(id);
 
-  // ------- State -------
-  let currentTicket = null;       // number
-  let currentIssue = null;        // issue json
+// ----- login / diag -----
+async function diag(){
+  const r=await fetch(`${API}/admin/diag`,{credentials:"include"});
+  if(r.status===401){ showLogin(); return false; }
+  const j=await r.json().catch(()=>({}));
+  $("whoami").textContent=j.hasStaffPassword?"auth:enabled":"auth:missing";
+  $("sess").textContent=j.hasSessionSecret?`sess:${j.sessionLen}`:"sess:missing";
+  $("allow").textContent=j.allowOrigin||"*";
+  showApp();
+  return true;
+}
+function showLogin(){ $("loginBox").style.display="block"; $("app").style.display="none"; }
+function showApp(){ $("loginBox").style.display="none"; $("app").style.display="block"; }
 
-  // ------- DOM -------
-  const $ = id => document.getElementById(id);
-  const $q = $("q"), $btnSearch = $("btnSearch"), $btnOpen = $("btnOpen"),
-        $btnClosed = $("btnClosed"), $btnRefresh = $("btnRefresh"), $list = $("list");
-  const $tTitle = $("tTitle"), $tMeta = $("tMeta"), $comments = $("comments");
-  const $replyText = $("replyText"), $replyFiles = $("replyFiles"), $fileList = $("fileList"),
-        $btnSend = $("btnSend"), $sendStatus = $("sendStatus");
-  const $noteText = $("noteText"), $btnNote = $("btnNote"), $noteStatus = $("noteStatus");
-  const $statusSel = $("statusSel"), $btnSetStatus = $("btnSetStatus");
-  const $whoami = $("whoami"), $env = $("env"), $allow = $("allow");
-
-  // ------- Utils -------
-  function esc(s){return (s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-  function humanBytes(n){if(n===0)return"0 B";if(!n)return"";const u=['B','KB','MB','GB'];let i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return n.toFixed(i?1:0)+" "+u[i]}
-  function setHashTicket(n){ location.hash = n ? `ticket=${n}` : "" }
-  function getHashTicket(){ const m = location.hash.match(/ticket=(\d+)/); return m ? m[1] : null }
-
-  function makeBlobUrl(b64,mime){
-    try{
-      const bin=atob(b64), buf=new Uint8Array(bin.length);
-      for(let i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
-      return URL.createObjectURL(new Blob([buf],{type:mime||"application/octet-stream"}));
-    }catch{ return "#" }
-  }
-
-  function parseCommentBody(body){
-    const lines=(body||"").split(/\r?\n/);
-    const first=(lines[0]||"").trim();
-    let type="comment";
-    if(/^PUBLIC:/.test(first)) type="public";
-    if(/^INTERNAL:/.test(first)) type="internal";
-    const html=[];
-    const att=[];
-    for(const line of lines){
-      if(/^ATTACH-DATA:/.test(line)){
-        const rest=line.replace(/^ATTACH-DATA:/,"");
-        const [name="", mime="application/octet-stream", size="0", b64=""] = rest.split("|");
-        if(b64) att.push({name,mime,size:parseInt(size,10)||0,b64});
-        continue;
-      }
-      if(/!\[[^\]]*]\(data:[^)]+\)/.test(line)){
-        const m=line.match(/!\[([^\]]*)]\((data:[^)]+)\)/);
-        if(m){ html.push(`<img class="inline-img" alt="${esc(m[1])}" src="${m[2]}">`); continue; }
-      }
-      html.push(`<div>${esc(line)}</div>`);
-    }
-    if(att.length>0){
-      html.push(`<div class="attachments">`);
-      for(const a of att){
-        const href=makeBlobUrl(a.b64,a.mime);
-        const label=`${a.name} • ${a.mime} • ${humanBytes(a.size)}`;
-        html.push(`<span class="dl"><a href="${href}" download="${esc(a.name)}">Download ${esc(label)}</a></span>`);
-      }
-      html.push(`</div>`);
-    }
-    return {type, html:html.join("")};
-  }
-
-  function renderComments(issue, comments){
-    $comments.innerHTML="";
-    // issue body
-    const div0=document.createElement("div");
-    div0.className="comment";
-    div0.innerHTML=`<span class="badge">Issue body</span><div style="height:6px"></div>${parseCommentBody(issue.body||"").html}`;
-    $comments.appendChild(div0);
-    (comments||[]).forEach(c=>{
-      const {type,html}=parseCommentBody(c.body||"");
-      const d=document.createElement("div");
-      d.className="comment";
-      const badge= type==="public" ? `<span class="badge public">PUBLIC</span>` :
-                    type==="internal" ? `<span class="badge internal">INTERNAL</span>` :
-                    `<span class="badge">Comment</span>`;
-      d.innerHTML=`${badge}<div style="height:6px"></div>${html}`;
-      $comments.appendChild(d);
-    });
-  }
-
-  // ------- API -------
-  async function diag(){
-    const r = await fetch(`${API}/admin/diag`, {credentials:"include"});
-    if(r.status===401){ location.href="/admin-login.html"; return; } // optional
-    const j = await r.json().catch(()=>({}));
-    $whoami.textContent = j.hasStaffPassword ? "auth:enabled" : "auth:missing";
-    $env.textContent = j.hasSessionSecret ? `sess:${j.sessionLen}` : "sess:missing";
-    $allow.textContent = j.allowOrigin || "*";
-  }
-
-  async function listTickets(view="open", q=""){
-    const params=new URLSearchParams();
-    if(view==="closed") params.set("state","closed"); else params.set("state","open");
-    if(q){ // search uses dedicated endpoint
-      const r=await fetch(`${API}/admin/tickets?view=search&q=${encodeURIComponent(q)}`,{credentials:"include"});
-      const j=await r.json(); if(!j.ok) throw new Error("Search failed");
-      return j.items||[];
-    }
-    const r=await fetch(`${API}/admin/tickets?${params}`,{credentials:"include"});
-    const j=await r.json(); if(!j.ok) throw new Error("List failed");
-    return j.items||j; // compat
-  }
-
-  async function loadTicket(n){
-    const r=await fetch(`${API}/admin/tickets/${n}`,{credentials:"include"});
-    const j=await r.json(); if(!j.ok) throw new Error("Load ticket failed");
-    currentIssue=j.issue; currentTicket=n;
-    $tTitle.textContent = `${j.issue.title}`;
-    $tMeta.textContent = `#${n} • ${j.issue.state} • Updated ${new Date(j.issue.updated_at).toLocaleString()}`;
-    renderComments(j.issue, j.comments);
-    setHashTicket(n);
-  }
-
-  async function setStatus(n, status){
-    const r=await fetch(`${API}/admin/tickets/${n}/status`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      credentials:"include",
-      body:JSON.stringify({status})
-    });
-    const j=await r.json(); if(!r.ok) throw new Error(j.error||"status failed");
-    return j;
-  }
-
-  async function sendReply(n, text, attachments){
-    const r=await fetch(`${API}/admin/tickets/${n}/reply`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      credentials:"include",
-      body:JSON.stringify({text,attachments})
-    });
-    const j=await r.json(); if(!r.ok) throw new Error(j.error||"reply failed");
-    return j;
-  }
-
-  async function addNote(n, text){
-    const r=await fetch(`${API}/admin/tickets/${n}/comment`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      credentials:"include",
-      body:JSON.stringify({text})
-    });
-    const j=await r.json(); if(!r.ok) throw new Error(j.error||"note failed");
-    return j;
-  }
-
-  // ------- UI actions -------
-  async function refreshList(kind){
-    $list.textContent="Loading…";
-    try{
-      const items = await listTickets(kind||"open", $q.value.trim());
-      if(items.length===0){ $list.textContent="No tickets."; return; }
-      $list.innerHTML = "";
-      for(const it of items){
-        const div=document.createElement("div");
-        div.className="item";
-        div.innerHTML=`<div style="font-weight:600">${esc(it.title)} <span class="muted">#${it.number}</span></div>
-                       <div class="muted">${esc((it.labels||[]).map(l=>l.name).join(", "))}</div>`;
-        div.onclick=()=>loadTicket(it.number);
-        $list.appendChild(div);
-      }
-    }catch(e){ $list.textContent="Failed to load list."; }
-  }
-
-  function showChosenFiles(){
-    const files=Array.from($replyFiles.files||[]);
-    if(files.length===0){ $fileList.textContent=""; return; }
-    let total=0;
-    $fileList.innerHTML = files.map(f=>{ total+=f.size||0; return `${esc(f.name)} — ${esc(f.type||"application/octet-stream")} — ${humanBytes(f.size)}`}).join("<br>");
-    $fileList.innerHTML += `<div><em>Total ${humanBytes(total)}</em></div>`;
-  }
-
-  function fileToBase64(file){
-    return new Promise((res,rej)=>{
-      const fr=new FileReader();
-      fr.onload=()=>res(String(fr.result).split(",")[1]||"");
-      fr.onerror=rej;
-      fr.readAsDataURL(file);
-    });
-  }
-
-  // ------- Bind events -------
-  $btnSearch.onclick=()=>refreshList("search");
-  $btnOpen.onclick=()=>{ $q.value=""; refreshList("open"); }
-  $btnClosed.onclick=()=>{ $q.value=""; refreshList("closed"); }
-  $btnRefresh.onclick=()=>refreshList(getHashTicket()?undefined:"open");
-  $replyFiles.onchange=showChosenFiles;
-
-  $btnSetStatus.onclick=async ()=>{
-    if(!currentTicket) return;
-    const status=$statusSel.value.trim(); if(!status) return;
-    $btnSetStatus.disabled=true;
-    try{ await setStatus(currentTicket,status); await loadTicket(currentTicket); }
-    catch(e){ alert("Status error"); }
-    finally{ $btnSetStatus.disabled=false; }
-  };
-
-  $btnSend.onclick=async ()=>{
-    if(!currentTicket) return;
-    const text=($replyText.value||"").trim();
-    const files=Array.from($replyFiles.files||[]);
-    // limits
-    const MAX_PER=5*1024*1024, MAX_TOTAL=10*1024*1024;
-    let total=0;
-    for(const f of files){ if(f.size>MAX_PER){ $sendStatus.textContent=`Too big: ${f.name}`; return; } total+=f.size; }
-    if(total>MAX_TOTAL){ $sendStatus.textContent=`Total exceeds 10 MB`; return; }
-
-    $btnSend.disabled=true; $sendStatus.textContent="Encoding…";
-    try{
-      const attachments=[];
-      for(const f of files){
-        const b64=await fileToBase64(f);
-        attachments.push({filename:f.name, contentType:f.type||"application/octet-stream", base64:b64});
-      }
-      $sendStatus.textContent="Sending…";
-      const j=await sendReply(currentTicket,text,attachments);
-      $replyText.value=""; $replyFiles.value=""; showChosenFiles();
-      await loadTicket(currentTicket);
-      if(j.email && j.email.ok) $sendStatus.textContent="Sent ✓";
-      else if(j.email && j.email.status) $sendStatus.textContent=`Resend status ${j.email.status}`;
-      else $sendStatus.textContent="Logged only (no email).";
-    }catch(e){ $sendStatus.textContent="Error sending"; }
-    finally{ $btnSend.disabled=false; }
-  };
-
-  $btnNote.onclick=async ()=>{
-    if(!currentTicket) return;
-    const text=($noteText.value||"").trim(); if(!text){ $noteStatus.textContent="Type something"; return; }
-    $btnNote.disabled=true; $noteStatus.textContent="Saving…";
-    try{ await addNote(currentTicket,text); $noteText.value=""; await loadTicket(currentTicket); $noteStatus.textContent="Added ✓"; }
-    catch(e){ $noteStatus.textContent="Error"; }
-    finally{ $btnNote.disabled=false; }
-  };
-
-  // ------- Init -------
-  (async function init(){
-    await diag();
-    // open from hash if present
-    const t = getHashTicket();
-    if(t){ refreshList("open").then(()=>loadTicket(t)); }
-    else { refreshList("open"); }
-  })();
-
-  // react to hash change (deep-link navigation)
-  window.addEventListener("hashchange", ()=>{
-    const t=getHashTicket();
-    if(t && t!==currentTicket) loadTicket(t);
+$("btnLogin").onclick=async()=>{
+  const pw=$("pw").value.trim();
+  $("loginMsg").textContent="Logging in…";
+  const r=await fetch(`${API}/admin/login`,{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({password:pw}),credentials:"include"
   });
+  const j=await r.json().catch(()=>({}));
+  if(j.ok){
+    $("loginMsg").textContent="Success!";
+    window.location.href="/admin.html"; // land here after login
+  } else $("loginMsg").textContent="Unauthorized.";
+};
+$("btnLogout").onclick=()=>{ showLogin(); };
+
+// ----- utils -----
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function humanBytes(n){if(n===0)return"0 B";if(!n)return"";const u=['B','KB','MB','GB'];let i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return n.toFixed(i?1:0)+" "+u[i]}
+function blobUrlFromBase64(b64,mime){
+  try{
+    const bin=atob(b64); const buf=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
+    return URL.createObjectURL(new Blob([buf],{type:mime||"application/octet-stream"}));
+  }catch(e){return"#"}
+}
+
+// Parse our attachment markers and turn them into UI
+function parseCommentBodyToHTML(body){
+  const lines=(body||"").split(/\r?\n/);
+  let html=[];
+  let pendingAtts=[];
+
+  for(const line of lines){
+    if(line.startsWith("ATTACH-DATA:")){
+      const rest=line.replace("ATTACH-DATA:","");
+      const [name="",mime="application/octet-stream",sizeStr="0",b64=""] = rest.split("|");
+      const size = parseInt(sizeStr,10)||0;
+      const href = b64 ? blobUrlFromBase64(b64, mime) : "#";
+      const label = `${name} • ${mime} • ${humanBytes(size)}`;
+      pendingAtts.push({href,name,label,download:true});
+      continue;
+    }
+    if(line.startsWith("ATTACH-NOINLINE:")){
+      const rest=line.replace("ATTACH-NOINLINE:","");
+      const [name="",mime="application/octet-stream",sizeStr="0"] = rest.split("|");
+      const size = parseInt(sizeStr,10)||0;
+      const label = `${name} • ${mime} • ${humanBytes(size)} (not inlined)`;
+      pendingAtts.push({href:"#",name,label,download:false});
+      continue;
+    }
+    // Inline image data:url from email path
+    const m=line.match(/!\[([^\]]*)]\((data:[^)]+)\)/);
+    if(m){ html.push(`<img class="inline-img" alt="${esc(m[1])}" src="${m[2]}">`); continue; }
+
+    html.push(`<div>${esc(line)}</div>`);
+  }
+
+  if(pendingAtts.length>0){
+    const parts = pendingAtts.map(a=>{
+      if(a.download){
+        return `<span class="dl"><a href="${a.href}" download="${esc(a.name)}">Download ${esc(a.label)}</a></span>`;
+      }else{
+        return `<span class="dl"><a href="javascript:void(0)" title="Large file not stored">Attachment: ${esc(a.label)}</a></span>`;
+      }
+    });
+    html.push(`<div class="attachments">${parts.join("")}</div>`);
+  }
+
+  return html.join("");
+}
+
+function renderComments(issue,comments){
+  const box=$("comments"); box.innerHTML="";
+  const d0=document.createElement("div"); d0.className="comment";
+  d0.innerHTML=`<span class="badge">Issue body</span><div style="height:6px"></div>${parseCommentBodyToHTML(issue.body||"")}`;
+  box.appendChild(d0);
+  (comments||[]).forEach(c=>{
+    const first=(c.body||"").split(/\r?\n/,1)[0]||"";
+    const type = first.startsWith("PUBLIC:") ? "public" : first.startsWith("INTERNAL:") ? "internal" : "comment";
+    const badge = type==="public" ? `<span class="badge public">PUBLIC</span>` :
+                  type==="internal" ? `<span class="badge internal">INTERNAL</span>` :
+                  `<span class="badge">Comment</span>`;
+    const d=document.createElement("div"); d.className="comment";
+    d.innerHTML=`${badge}<div style="height:6px"></div>${parseCommentBodyToHTML(c.body||"")}`;
+    box.appendChild(d);
+  });
+}
+
+// ----- list & view -----
+const $q=$("q"), $list=$("list"), $statusSel=$("statusSel"), $btnSetStatus=$("btnSetStatus");
+const $replyText=$("replyText"), $replyFiles=$("replyFiles"), $fileList=$("fileList");
+const $btnSend=$("btnSend"), $sendStatus=$("sendStatus");
+const $noteText=$("noteText"), $btnNote=$("btnNote"), $noteStatus=$("noteStatus");
+
+function setHashTicket(n){location.hash = n? `ticket=${n}` : "";}
+function getHashTicket(){const m=location.hash.match(/ticket=(\d+)/);return m?m[1]:null;}
+
+async function listTickets(view="open", q=""){
+  if(q){
+    const r=await fetch(`${API}/admin/tickets?view=search&q=${encodeURIComponent(q)}`,{credentials:"include"});
+    const j=await r.json(); return j.items||[];
+  }
+  const params=new URLSearchParams(); params.set("state", view==="closed"?"closed":"open");
+  const r=await fetch(`${API}/admin/tickets?${params}`,{credentials:"include"});
+  const j=await r.json(); return j.items||j;
+}
+async function refreshList(kind){
+  $list.textContent="Loading…";
+  try{
+    const items=await listTickets(kind||"open",$q.value.trim());
+    if(items.length===0){$list.textContent="No tickets.";return;}
+    $list.innerHTML="";
+    for(const it of items){
+      const div=document.createElement("div"); div.className="item";
+      div.innerHTML=`<div style="font-weight:600">${(it.title||"(no title)") } <span class="muted">#${it.number}</span></div>
+                     <div class="muted">${(it.labels||[]).map(l=>l.name).join(", ")}</div>`;
+      div.onclick=()=>loadTicket(it.number);
+      $list.appendChild(div);
+    }
+  }catch{ $list.textContent="Failed to load list."; }
+}
+async function loadTicket(n){
+  const r=await fetch(`${API}/admin/tickets/${n}`,{credentials:"include"});
+  const j=await r.json(); if(!j.ok){document.getElementById("tTitle").textContent="Error loading ticket";return;}
+  const issue=j.issue, comments=j.comments||[];
+  document.getElementById("tTitle").textContent=issue.title || `(no title)`;
+  document.getElementById("tMeta").textContent=`#${n} • ${issue.state} • Updated ${new Date(issue.updated_at||issue.created_at).toLocaleString()}`;
+  renderComments(issue,comments);
+  window.currentTicket=n; setHashTicket(n);
+}
+
+// ----- status -----
+$btnSetStatus.onclick=async()=>{
+  if(!window.currentTicket) return;
+  const status=$statusSel.value.trim(); if(!status) return;
+  $btnSetStatus.disabled=true;
+  try{
+    const r=await fetch(`${API}/admin/tickets/${window.currentTicket}/status`,{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      credentials:"include",body:JSON.stringify({status})
+    });
+    if(r.ok) await loadTicket(window.currentTicket);
+    else alert("Status update failed");
+  }finally{$btnSetStatus.disabled=false;}
+};
+
+// ----- attachments (compose) -----
+function showChosenFiles(){
+  const files=Array.from($replyFiles.files||[]); if(files.length===0){$fileList.textContent="";return;}
+  let total=0;
+  $fileList.innerHTML=files.map(f=>{total+=f.size||0;return `${f.name} — ${(f.type||"application/octet-stream")} — ${humanBytes(f.size)}`}).join(" | ");
+  $fileList.innerHTML+=` <em>(Total ${humanBytes(total)})</em>`;
+}
+$replyFiles.onchange=showChosenFiles;
+
+// ----- send reply (multipart) -----
+$btnSend.onclick=async()=>{
+  if(!window.currentTicket) return;
+  const text=($replyText.value||"").trim();
+  const files=Array.from($replyFiles.files||[]);
+  if(!text && files.length===0){$sendStatus.textContent="Type a reply or attach a file.";return;}
+
+  const fd=new FormData(); fd.append("text",text); for(const f of files) fd.append("files",f);
+  $btnSend.disabled=true; $sendStatus.textContent="Sending…";
+  try{
+    const r=await fetch(`${API}/admin/tickets/${window.currentTicket}/reply`,{method:"POST",body:fd,credentials:"include"});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){$sendStatus.textContent=`Error ${r.status}`;}
+    else{
+      $replyText.value=""; $replyFiles.value=""; showChosenFiles();
+      await loadTicket(window.currentTicket);
+      if(j.email && j.email.ok) $sendStatus.textContent="Sent ✓";
+      else if(j.email && j.email.status) $sendStatus.textContent=`Resend: ${j.email.status}`;
+      else $sendStatus.textContent="Logged only.";
+    }
+  }catch{ $sendStatus.textContent="Network error"; }
+  finally{ $btnSend.disabled=false; }
+};
+
+// ----- internal note -----
+$btnNote.onclick=async()=>{
+  if(!window.currentTicket) return;
+  const text=($noteText.value||"").trim(); if(!text){$noteStatus.textContent="Type something";return;}
+  $btnNote.disabled=true; $noteStatus.textContent="Saving…";
+  try{
+    const r=await fetch(`${API}/admin/tickets/${window.currentTicket}/comment`,{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      credentials:"include",body:JSON.stringify({text})
+    });
+    if(r.ok){$noteText.value=""; await loadTicket(window.currentTicket); $noteStatus.textContent="Added ✓";}
+    else $noteStatus.textContent="Error";
+  }catch{ $noteStatus.textContent="Network error"; }
+  finally{$btnNote.disabled=false;}
+};
+
+// ----- search & filters -----
+$("btnSearch").onclick=()=>refreshList("search");
+$("btnOpen").onclick=()=>{ $("q").value=""; refreshList("open"); };
+$("btnClosed").onclick=()=>{ $("q").value=""; refreshList("closed"); };
+$("btnRefresh").onclick=()=>refreshList();
+
+// init
+(async function(){
+  const ok=await diag();
+  if(!ok) return;
+  await refreshList("open");
+  const m=location.hash.match(/ticket=(\d+)/); if(m) loadTicket(m[1]);
+})();
 </script>
 </body>
 </html>
